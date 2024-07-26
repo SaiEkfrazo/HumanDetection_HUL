@@ -4,7 +4,7 @@ from import_export.admin import ImportExportModelAdmin
 # Register your models here.
 from .models import *
 
-admin.site.register(NMBDashboard)
+admin.site.register(Khamgaon)
 
 @admin.register(RootCauseAnalysis)
 class RootCauseAnalysisAdmin(ImportExportModelAdmin):

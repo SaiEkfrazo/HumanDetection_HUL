@@ -47,7 +47,7 @@ def delete_image_from_space(image_url):
 
 class DeleteRecordsByDateAPIView(APIView):
     MODEL_MAPPING = {
-        2: NMBDashboard,
+        2: Khamgaon,
         3: LiquidPlant,
         4: ShampooPlant,
     }

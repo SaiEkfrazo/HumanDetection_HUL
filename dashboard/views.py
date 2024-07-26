@@ -575,12 +575,12 @@ from collections import defaultdict
 
 @method_decorator(csrf_exempt, name='dispatch')
 class DashboardAPIView(viewsets.ModelViewSet):
-    queryset = NMBDashboard.objects.all()
+    queryset = Khamgaon.objects.all()
     # authentication_classes = [JWTAuthentication]
     # permission_classes = [IsAuthenticated]
 
     MODEL_MAPPING = {
-        2: NMBDashboard,
+        2: Khamgaon,
         3: LiquidPlant,
         4: ShampooPlant,
     }
@@ -843,7 +843,7 @@ class ReportsAPIView(viewsets.ViewSet):
     # permission_classes = [IsAuthenticated]
 
     MODEL_MAPPING = {
-        2: NMBDashboard,
+        2: Khamgaon,
         3: LiquidPlant,
         4: ShampooPlant,
     }
@@ -949,7 +949,7 @@ class ReportsAPIView(viewsets.ViewSet):
 
 class AISmartAPIView(viewsets.ViewSet):
     MODEL_MAPPING = {
-        2: NMBDashboard,
+        2: Khamgaon,
         3: LiquidPlant,
         4: ShampooPlant,
     }

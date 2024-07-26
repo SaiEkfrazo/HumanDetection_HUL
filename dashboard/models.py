@@ -53,9 +53,9 @@ class Department(models.Model):
         return self.name if self.name else ""
 
 
-class NMBDashboard(models.Model):
+class Khamgaon(models.Model):
     class Meta:
-        db_table = 'NMBDashboard'
+        db_table = 'Khamgaon'
 
     machines = models.ForeignKey(Machines,on_delete=models.CASCADE,null=False,blank=False)
     department = models.ForeignKey(Department,on_delete=models.CASCADE,null=False,blank=False)

@@ -32,7 +32,7 @@ class PlantSerializer(serializers.ModelSerializer):
 
 class NMBDashboardSerializer(serializers.ModelSerializer):
     class Meta:
-        model = NMBDashboard
+        model = Khamgaon
         fields = '__all__'
 
 class MachineTemperaturesSerializer(serializers.ModelSerializer):
