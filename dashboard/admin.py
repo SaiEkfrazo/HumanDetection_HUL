@@ -8,7 +8,7 @@ admin.site.register(Khamgaon)
 
 @admin.register(RootCauseAnalysis)
 class RootCauseAnalysisAdmin(ImportExportModelAdmin):
-    list_display = ('id', 'defect', 'rca1', 'rca2', 'rca3','rca4','rca5','rca6')
+    list_display = ('id', 'area', 'rca1', 'rca2', 'rca3','rca4','rca5','rca6')
 
 @admin.register(Areas)
 class AreasAdmin(ImportExportModelAdmin):
@@ -16,7 +16,7 @@ class AreasAdmin(ImportExportModelAdmin):
 
 @admin.register(Machines)
 class MachineAdmin(ImportExportModelAdmin):
-    list_display = ('id','name', 'plant')  
+    list_display = ('id','name', 'plant','color_code')  
 
 @admin.register(Products)
 class ProductsAdmin(ImportExportModelAdmin):

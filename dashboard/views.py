@@ -571,7 +571,7 @@ from rest_framework.response import Response
 from django.core.cache import cache
 from datetime import datetime, timedelta
 from collections import defaultdict
-
+from django.db import transaction
 
 @method_decorator(csrf_exempt, name='dispatch')
 class DashboardAPIView(viewsets.ModelViewSet):
@@ -580,27 +580,25 @@ class DashboardAPIView(viewsets.ModelViewSet):
     # permission_classes = [IsAuthenticated]
 
     MODEL_MAPPING = {
-        2: Khamgaon,
+        1: Khamgaon,
         3: LiquidPlant,
         4: ShampooPlant,
     }
 
     @swagger_auto_schema(
         operation_summary="Create a Record",
-        operation_description="Upload an image",
+        operation_description="Upload an image and store machine data",
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
                 'base64_image': openapi.Schema(type=openapi.TYPE_STRING, description='Base64 encoded image'),
                 'machines_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='Machine ID'),
-                'department_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='Department ID'),
-                'product_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='Product ID'),
-                'Areas_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='area ID'),
+                'areas_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='Area ID'),
+                'duration': openapi.Schema(type=openapi.TYPE_NUMBER, description='Duration in seconds'),
                 'plant_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='Plant ID'),
-                'recorded_date_time': openapi.Schema(type=openapi.TYPE_STRING, description='Recorded Date Time'),
-                'rca': openapi.Schema(type=openapi.TYPE_STRING, description='RCA')
+                'recorded_date_time': openapi.Schema(type=openapi.TYPE_STRING, description='Recorded Date Time')
             },
-            required=['base64_image', 'machines_id', 'department_id', 'product_id', 'Areas_id', 'plant_id', 'recorded_date_time']
+            # required=['machines_id', 'areas_id', 'duration', 'plant_id', 'recorded_date_time']
         ),
         responses={
             201: openapi.Response(description="Record created successfully"),
@@ -608,35 +606,16 @@ class DashboardAPIView(viewsets.ModelViewSet):
             500: openapi.Response(description="Failed to save data")
         }
     )
+    @transaction.atomic
     def create(self, request, *args, **kwargs):
-        base64_image = request.data.get('base64_image', '')
         machines_id = request.data.get('machines_id', None)
-        department_id = request.data.get('department_id', None)
-        product_id = request.data.get('product_id', None)
-        Areas_id = request.data.get('Areas_id', None)
+        areas_id = request.data.get('areas_id', None)
+        duration = request.data.get('duration', None)
         plant_id = request.data.get('plant_id', None)
         recorded_date_time = request.data.get('recorded_date_time', None)
-        rca_field = request.data.get('rca', None)  # Changed from rca_id to rca_field
 
-        # Validate if all required fields are provided
-        if not all([base64_image, machines_id, department_id, product_id, Areas_id, plant_id, recorded_date_time]):
+        if not all([machines_id, areas_id, duration, plant_id, recorded_date_time]):
             return Response({'error': 'Missing required fields.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Create a unique file name using the provided fields
-        file_name = f"{plant_id}_{Areas_id}_{recorded_date_time}.png"
-
-        # Decode the base64 image and save it to the media directory
-        try:
-            decoded_image = base64.b64decode(base64_image)
-            media_path = os.path.join(settings.MEDIA_ROOT, 'images')
-            os.makedirs(media_path, exist_ok=True)  # Ensure the directory exists
-            path = os.path.join(media_path, file_name)
-            with default_storage.open(path, 'wb') as f:
-                f.write(decoded_image)
-        except Exception as e:
-            return Response({'error': f'Failed to upload image: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
-
-        image_url = os.path.join(settings.MEDIA_URL, 'images', file_name)
 
         try:
             # Determine the model to use based on the plant_id
@@ -644,115 +623,54 @@ class DashboardAPIView(viewsets.ModelViewSet):
             if not model:
                 return Response({'error': 'Invalid plant_id provided.'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Create a new record in the appropriate model
+            # Create a new record in the appropriate model (e.g., Khamgaon)
             record = model.objects.create(
                 machines_id=machines_id,
-                department_id=department_id,
-                product_id=product_id,
-                Areas_id=Areas_id,
+                areas_id=areas_id,
+                duration=duration,
                 plant_id=plant_id,
-                image=image_url,  # Save the local URL in the image field
                 recorded_date_time=recorded_date_time
             )
-            print('record',record)
-            recorded_date = recorded_date_time[:10]
 
+            # Extract just the date from recorded_date_time for Dashboard entry
+            recorded_date = recorded_date_time.split('T')[0]
+
+            # Update or create the record in the Dashboard table
             dashboard_entry, created = Dashboard.objects.get_or_create(
                 machines_id=machines_id,
-                department_id=department_id,
-                product_id=product_id,
-                Areas_id=Areas_id,
+                areas_id=areas_id,
                 plant_id=plant_id,
-                recorded_date_time=recorded_date
+                recorded_date_time=recorded_date,
+                defaults={'total_duration': duration}
             )
 
             if not created:
-                dashboard_entry.count += 1
+                # If the record already exists, update the total_duration
+                dashboard_entry.total_duration += duration
                 dashboard_entry.save()
-            else:
-                dashboard_entry.count = 1
-                dashboard_entry.save()
-
-            machine_parameter = MachineParameters.objects.filter(parameter="Reject Counter").first()
-            if machine_parameter:
-                machine_params_obj, created = MachineParametersGraph.objects.get_or_create(
-                    recorded_date_time=recorded_date,
-                    machine_parameter=machine_parameter,
-                    plant_id=plant_id
-                )
-                if not created:
-                    machine_params_obj.params_count = F('params_count') + 1
-                    machine_params_obj.save()
-                else:
-                    machine_params_obj.params_count = 1
-                    machine_params_obj.save()
-
-            # Check if the same area occurred three times consecutively
-            last_three_records = model.objects.filter(plant_id=plant_id).order_by('-id')[:3]
-
-            if last_three_records.count() == 3:
-                Areas = [record.Areas for record in last_three_records]
-                if all(area == last_three_records[0].Areas for area in Areas):
-                    # Get the RCA for the area
-                    rca = RootCauseAnalysis.objects.filter(area_id=Areas_id).first()
-                    if rca:
-                        notification_text = f"area '{rca.area.name}' has occurred three times consecutively.\n"
-                        if rca_field and hasattr(rca, rca_field):
-                            notification_text += f"{rca_field.upper()}: {getattr(rca, rca_field)}\n"
-                        else:
-                            if rca.rca1:
-                                notification_text += f"RCA1: {rca.rca1}\n"
-                            if rca.rca2:
-                                notification_text += f"RCA2: {rca.rca2}\n"
-                            if rca.rca3:
-                                notification_text += f"RCA3: {rca.rca3}\n"
-                            if rca.rca4:
-                                notification_text += f"RCA4: {rca.rca4}\n"
-                            if rca.rca5:
-                                notification_text += f"RCA5: {rca.rca5}\n"
-                            if rca.rca6:
-                                notification_text += f"RCA6: {rca.rca6}\n"
-                    else:
-                        notification_text = f"area '{last_three_records[0].Areas.name}' has occurred three times consecutively."
-
-                    AreaNotification.objects.create(
-                        area_id=Areas_id,
-                        notification_text=notification_text,
-                        recorded_date_time=recorded_date_time,
-                        plant_id=plant_id,
-                    )
-
-                    # Send the notification via WebSockets to the specific plant_id room
-                    channel_layer = get_channel_layer()
-                    async_to_sync(channel_layer.group_send)(
-                        f'notifications_{plant_id}',
-                        {
-                            'type': 'send_notification',
-                            'notification': notification_text
-                        }
-                    )
 
             return Response({'message': 'Record created successfully'}, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({'error': f'Failed to save data: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
     @swagger_auto_schema(
-        manual_parameters=[
-            openapi.Parameter('plant_id', openapi.IN_QUERY, description="Plant ID", type=openapi.TYPE_INTEGER),
-            openapi.Parameter('from_date', openapi.IN_QUERY, description="Start date (YYYY-MM-DD)", type=openapi.TYPE_STRING),
-            openapi.Parameter('to_date', openapi.IN_QUERY, description="End date (YYYY-MM-DD)", type=openapi.TYPE_STRING),
-            openapi.Parameter('machine_id', openapi.IN_QUERY, description="Machine ID", type=openapi.TYPE_INTEGER),
-            openapi.Parameter('department_id', openapi.IN_QUERY, description="Department ID", type=openapi.TYPE_INTEGER),
-            openapi.Parameter('product_id', openapi.IN_QUERY, description="Product ID", type=openapi.TYPE_INTEGER),
-            openapi.Parameter('area_id', openapi.IN_QUERY, description="area ID", type=openapi.TYPE_INTEGER),
-        ],
-        operation_description="List area counts for a specific plant within the specified date range and filters",
-        responses={
-            200: openapi.Response(description="Records retrieved successfully"),
-            400: openapi.Response(description="Missing or invalid parameters"),
-            404: openapi.Response(description="Plant not found"),
-            500: openapi.Response(description="Failed to retrieve records")
-        },
-        operation_summary="Dashboard Data"
+    manual_parameters=[
+        openapi.Parameter('plant_id', openapi.IN_QUERY, description="Plant ID", type=openapi.TYPE_INTEGER),
+        openapi.Parameter('from_date', openapi.IN_QUERY, description="Start date (YYYY-MM-DD)", type=openapi.TYPE_STRING),
+        openapi.Parameter('to_date', openapi.IN_QUERY, description="End date (YYYY-MM-DD)", type=openapi.TYPE_STRING),
+        openapi.Parameter('machine_id', openapi.IN_QUERY, description="Machine ID", type=openapi.TYPE_INTEGER),
+        openapi.Parameter('department_id', openapi.IN_QUERY, description="Department ID", type=openapi.TYPE_INTEGER),
+        openapi.Parameter('product_id', openapi.IN_QUERY, description="Product ID", type=openapi.TYPE_INTEGER),
+        openapi.Parameter('area_id', openapi.IN_QUERY, description="Area ID", type=openapi.TYPE_INTEGER),
+    ],
+    operation_description="List area counts for a specific plant within the specified date range and filters",
+    responses={
+        200: openapi.Response(description="Records retrieved successfully"),
+        400: openapi.Response(description="Missing or invalid parameters"),
+        404: openapi.Response(description="Plant not found"),
+        500: openapi.Response(description="Failed to retrieve records")
+    },
+    operation_summary="Dashboard Data"
     )
     def list(self, request, *args, **kwargs):
         plant_id = request.query_params.get('plant_id')
@@ -785,7 +703,6 @@ class DashboardAPIView(viewsets.ModelViewSet):
         if not filters_applied:
             cache_key = f'{CACHE_KEY}'
             cached_data = cache.get(cache_key)
-            print('cached data',cached_data)
             if cached_data:
                 return Response(cached_data, status=status.HTTP_200_OK)
 
@@ -797,11 +714,11 @@ class DashboardAPIView(viewsets.ModelViewSet):
         if product_id:
             filter_criteria['product_id'] = product_id
         if area_id:
-            filter_criteria['Areas_id'] = area_id
+            filter_criteria['areas_id'] = area_id
 
         queryset = Dashboard.objects.filter(**filter_criteria)
         response_data = {}
-        products_set = set()
+        areas_set = set()
 
         for record in queryset:
             if not record.recorded_date_time:
@@ -815,27 +732,32 @@ class DashboardAPIView(viewsets.ModelViewSet):
 
             if (not from_date or from_date <= date) and (not to_date or date <= to_date):
                 try:
-                    area = Areas.objects.get(id=record.Areas_id)
+                    area = Areas.objects.get(id=record.areas_id)
                     area_name = area.name
                 except Areas.DoesNotExist:
-                    continue
+                    area_name = None
 
-                product_name = record.product.name
-                products_set.add(product_name)
+                if area_name:
+                    areas_set.add(area_name)
+
                 if str(date) not in response_data:
-                    response_data[str(date)] = {}
+                    response_data[str(date)] = {'total_duration': 0}
+
                 if area_name not in response_data[str(date)]:
                     response_data[str(date)][area_name] = 0
 
-                response_data[str(date)][area_name] += record.count
+                # Convert the duration from seconds to minutes and add to the total
+                duration_in_minutes = record.total_duration / 60  # Convert to minutes
+                response_data[str(date)][area_name] += duration_in_minutes
+                response_data[str(date)]['total_duration'] += duration_in_minutes
 
-        products_list = list(products_set)
-        response_data['active_products'] = products_list
+        response_data['areas'] = list(areas_set)
 
-        if not filters_applied:
-            cache.set(cache_key, response_data, timeout=CACHE_TIMEOUT)
+        # if not filters_applied:
+        #     cache.set(cache_key, response_data, timeout=CACHE_TIMEOUT)
 
         return Response(response_data, status=status.HTTP_200_OK)
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ReportsAPIView(viewsets.ViewSet):
