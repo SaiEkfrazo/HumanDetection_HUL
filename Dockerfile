@@ -43,7 +43,7 @@ RUN pip install --upgrade pip && \
 
 RUN python manage.py collectstatic --noinput
 # Expose port 8000
-EXPOSE 8000
+EXPOSE 8011
 
 # Define a command to start the Django application with daphne
-CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "vin.asgi:application"]
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8011", "vin.asgi:application"]
