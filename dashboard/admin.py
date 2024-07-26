@@ -10,8 +10,8 @@ admin.site.register(NMBDashboard)
 class RootCauseAnalysisAdmin(ImportExportModelAdmin):
     list_display = ('id', 'defect', 'rca1', 'rca2', 'rca3','rca4','rca5','rca6')
 
-@admin.register(Defects)
-class DefectsAdmin(ImportExportModelAdmin):
+@admin.register(Areas)
+class AreasAdmin(ImportExportModelAdmin):
     list_display = ('name','color_code','plant')
 
 @admin.register(Machines)
@@ -45,7 +45,7 @@ class MachineParametersAdmin(ImportExportModelAdmin):
     list_display = ('parameter', 'color_code')
 
 
-admin.site.register(DefectNotification)
+admin.site.register(AreaNotification)
 
 
 @admin.register(SystemStatus)

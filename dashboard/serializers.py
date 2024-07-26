@@ -18,9 +18,9 @@ class DepartmentSerializer(serializers.ModelSerializer):
         model = Department
         fields = '__all__'
 
-class DefectsSerializer(serializers.ModelSerializer):
+class AreasSerializers(serializers.ModelSerializer):
     class Meta:
-        model = Defects
+        model = Areas
         fields = '__all__'
 
 class PlantSerializer(serializers.ModelSerializer):
@@ -54,8 +54,8 @@ class DefectNotificationSerializer(serializers.ModelSerializer):
     rca6 = serializers.SerializerMethodField()
 
     class Meta:
-        model = DefectNotification
-        fields = ['id', 'defect', 'notification_text', 'rca1', 'rca2', 'rca3', 'rca4', 'rca5', 'rca6', 'recorded_date_time']
+        model = AreaNotification
+        fields = ['id', 'area', 'notification_text', 'rca1', 'rca2', 'rca3', 'rca4', 'rca5', 'rca6', 'recorded_date_time']
 
     def get_rca(self, obj, rca_number):
         lines = obj.notification_text.split('\n')

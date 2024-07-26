@@ -131,23 +131,23 @@ SWAGGER_SETTINGS = {
 # settings for local mysql 
 
 DATABASES = {
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.mysql',
-    #     'NAME': 'vin',                  # Local database name
-    #     'USER': 'saitreddy',            # Local database user
-    #     'PASSWORD': 'sai',              # Local database password
-    #     'HOST': 'localhost',            # Local database host
-    #     'PORT': '3306',                 # Local database port
-    # },
-    'default':
-           {
-           'ENGINE': 'django.db.backends.mysql',
-           'NAME': 'vin',
-           'USER': 'root',  
-           'PASSWORD': 'sai',  
-           'HOST': 'db',  
-           'PORT': '3306',    
-           }
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'HumanDetection_HUL',                  # Local database name
+        'USER': 'saitreddy',            # Local database user
+        'PASSWORD': 'sai',              # Local database password
+        'HOST': 'localhost',            # Local database host
+        'PORT': '3306',                 # Local database port
+    },
+    # 'default':
+    #        {
+    #        'ENGINE': 'django.db.backends.mysql',
+    #        'NAME': 'vin',
+    #        'USER': 'root',  
+    #        'PASSWORD': 'sai',  
+    #        'HOST': 'db',  
+    #        'PORT': '3306',    
+    #        }
     # 'cloud': {
     #     'ENGINE': 'django.db.backends.mysql',
     #     'NAME': 'VIN_LOCAL',            # Cloud database name

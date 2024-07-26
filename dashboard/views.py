@@ -344,18 +344,18 @@ class DepartmentAPIView(viewsets.ModelViewSet):
         return Response({'message': 'Department deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
 
 
-class DefectAPIView(viewsets.ModelViewSet):
-    queryset = Defects.objects.all()
-    serializer_class = DefectsSerializer
+class AreaAPIView(viewsets.ModelViewSet):
+    queryset = Areas.objects.all()
+    serializer_class = AreasSerializers
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
-        request_body=DefectsSerializer,
-        operation_summary="Create a Defect",
+        request_body=AreasSerializers,
+        operation_summary="Create a area",
         responses={
-            201: openapi.Response(description="Defect created successfully"),
-            400: openapi.Response(description="Defect with this name and color code already exists in this plant")
+            201: openapi.Response(description="area created successfully"),
+            400: openapi.Response(description="area with this name and color code already exists in this plant")
         }
     )
     def create(self, request, *args, **kwargs):
@@ -366,21 +366,21 @@ class DefectAPIView(viewsets.ModelViewSet):
         name = serializer.validated_data.get('name').strip()
         color_code = serializer.validated_data.get('color_code').strip()
 
-        if Defects.objects.filter(plant=plant, name=name).exists():
-            return Response({'message': 'Defect with this name already exists in this plant'}, status=status.HTTP_400_BAD_REQUEST)
+        if Areas.objects.filter(plant=plant, name=name).exists():
+            return Response({'message': 'area with this name already exists in this plant'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if Defects.objects.filter(plant=plant, color_code=color_code).exists():
-            return Response({'message': 'Defect with this color code already exists in this plant'}, status=status.HTTP_400_BAD_REQUEST)
+        if Areas.objects.filter(plant=plant, color_code=color_code).exists():
+            return Response({'message': 'area with this color code already exists in this plant'}, status=status.HTTP_400_BAD_REQUEST)
 
         self.perform_create(serializer)
-        return Response({'message': 'Defect created successfully'}, status=status.HTTP_201_CREATED)
+        return Response({'message': 'area created successfully'}, status=status.HTTP_201_CREATED)
 
     @swagger_auto_schema(
-        request_body=DefectsSerializer,
-        operation_summary="Update a Defect",
+        request_body=AreasSerializers,
+        operation_summary="Update a area",
         responses={
-            200: openapi.Response(description="Defect updated successfully"),
-            400: openapi.Response(description="Defect with this name and color code already exists in this plant")
+            200: openapi.Response(description="area updated successfully"),
+            400: openapi.Response(description="area with this name and color code already exists in this plant")
         }
     )
     def update(self, request, *args, **kwargs):
@@ -393,11 +393,11 @@ class DefectAPIView(viewsets.ModelViewSet):
         name = serializer.validated_data.get('name')
         color_code = serializer.validated_data.get('color_code')
 
-        if Defects.objects.exclude(id=instance.id).filter(plant=plant, name=name, color_code=color_code).exists():
-            return Response({'message': 'Defect with this name and color code already exists in this plant'}, status=status.HTTP_400_BAD_REQUEST)
+        if Areas.objects.exclude(id=instance.id).filter(plant=plant, name=name, color_code=color_code).exists():
+            return Response({'message': 'area with this name and color code already exists in this plant'}, status=status.HTTP_400_BAD_REQUEST)
 
         self.perform_update(serializer)
-        return Response({'message': 'Defect updated successfully'}, status=status.HTTP_200_OK)
+        return Response({'message': 'area updated successfully'}, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
         manual_parameters=[
@@ -405,17 +405,17 @@ class DefectAPIView(viewsets.ModelViewSet):
                 name='plant_name',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
-                description='Filter defects by Plant name'
+                description='Filter Areas by Plant name'
             ),
             openapi.Parameter(
                 name='key',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
-                description='Search defects by name'
+                description='Search Areas by name'
             )
         ],
-        operation_summary="List Defects",
-        responses={200: DefectsSerializer(many=True)}
+        operation_summary="List Areas",
+        responses={200: AreasSerializers(many=True)}
     )
     def list(self, request, *args, **kwargs):
         plant_name = request.query_params.get('plant_name')
@@ -434,16 +434,16 @@ class DefectAPIView(viewsets.ModelViewSet):
         return Response({'message': 'Machines list retrieved successfully', 'results': serializer.data})
     
     @swagger_auto_schema(
-        operation_summary="Delete a Defect",
+        operation_summary="Delete a area",
         responses={
-            204: openapi.Response(description="Defect deleted successfully"),
-            404: openapi.Response(description="Defect not found")
+            204: openapi.Response(description="area deleted successfully"),
+            404: openapi.Response(description="area not found")
         }
     )
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         self.perform_destroy(instance)
-        return Response({'message': 'Defect deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+        return Response({'message': 'area deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
     
 ####### Plant API View #######
 
@@ -595,12 +595,12 @@ class DashboardAPIView(viewsets.ModelViewSet):
                 'machines_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='Machine ID'),
                 'department_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='Department ID'),
                 'product_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='Product ID'),
-                'defects_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='Defect ID'),
+                'Areas_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='area ID'),
                 'plant_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='Plant ID'),
                 'recorded_date_time': openapi.Schema(type=openapi.TYPE_STRING, description='Recorded Date Time'),
                 'rca': openapi.Schema(type=openapi.TYPE_STRING, description='RCA')
             },
-            required=['base64_image', 'machines_id', 'department_id', 'product_id', 'defects_id', 'plant_id', 'recorded_date_time']
+            required=['base64_image', 'machines_id', 'department_id', 'product_id', 'Areas_id', 'plant_id', 'recorded_date_time']
         ),
         responses={
             201: openapi.Response(description="Record created successfully"),
@@ -613,17 +613,17 @@ class DashboardAPIView(viewsets.ModelViewSet):
         machines_id = request.data.get('machines_id', None)
         department_id = request.data.get('department_id', None)
         product_id = request.data.get('product_id', None)
-        defects_id = request.data.get('defects_id', None)
+        Areas_id = request.data.get('Areas_id', None)
         plant_id = request.data.get('plant_id', None)
         recorded_date_time = request.data.get('recorded_date_time', None)
         rca_field = request.data.get('rca', None)  # Changed from rca_id to rca_field
 
         # Validate if all required fields are provided
-        if not all([base64_image, machines_id, department_id, product_id, defects_id, plant_id, recorded_date_time]):
+        if not all([base64_image, machines_id, department_id, product_id, Areas_id, plant_id, recorded_date_time]):
             return Response({'error': 'Missing required fields.'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Create a unique file name using the provided fields
-        file_name = f"{plant_id}_{defects_id}_{recorded_date_time}.png"
+        file_name = f"{plant_id}_{Areas_id}_{recorded_date_time}.png"
 
         # Decode the base64 image and save it to the media directory
         try:
@@ -649,7 +649,7 @@ class DashboardAPIView(viewsets.ModelViewSet):
                 machines_id=machines_id,
                 department_id=department_id,
                 product_id=product_id,
-                defects_id=defects_id,
+                Areas_id=Areas_id,
                 plant_id=plant_id,
                 image=image_url,  # Save the local URL in the image field
                 recorded_date_time=recorded_date_time
@@ -661,7 +661,7 @@ class DashboardAPIView(viewsets.ModelViewSet):
                 machines_id=machines_id,
                 department_id=department_id,
                 product_id=product_id,
-                defects_id=defects_id,
+                Areas_id=Areas_id,
                 plant_id=plant_id,
                 recorded_date_time=recorded_date
             )
@@ -687,16 +687,16 @@ class DashboardAPIView(viewsets.ModelViewSet):
                     machine_params_obj.params_count = 1
                     machine_params_obj.save()
 
-            # Check if the same defect occurred three times consecutively
+            # Check if the same area occurred three times consecutively
             last_three_records = model.objects.filter(plant_id=plant_id).order_by('-id')[:3]
 
             if last_three_records.count() == 3:
-                defects = [record.defects for record in last_three_records]
-                if all(defect == last_three_records[0].defects for defect in defects):
-                    # Get the RCA for the defect
-                    rca = RootCauseAnalysis.objects.filter(defect_id=defects_id).first()
+                Areas = [record.Areas for record in last_three_records]
+                if all(area == last_three_records[0].Areas for area in Areas):
+                    # Get the RCA for the area
+                    rca = RootCauseAnalysis.objects.filter(area_id=Areas_id).first()
                     if rca:
-                        notification_text = f"Defect '{rca.defect.name}' has occurred three times consecutively.\n"
+                        notification_text = f"area '{rca.area.name}' has occurred three times consecutively.\n"
                         if rca_field and hasattr(rca, rca_field):
                             notification_text += f"{rca_field.upper()}: {getattr(rca, rca_field)}\n"
                         else:
@@ -713,10 +713,10 @@ class DashboardAPIView(viewsets.ModelViewSet):
                             if rca.rca6:
                                 notification_text += f"RCA6: {rca.rca6}\n"
                     else:
-                        notification_text = f"Defect '{last_three_records[0].defects.name}' has occurred three times consecutively."
+                        notification_text = f"area '{last_three_records[0].Areas.name}' has occurred three times consecutively."
 
-                    DefectNotification.objects.create(
-                        defect_id=defects_id,
+                    AreaNotification.objects.create(
+                        area_id=Areas_id,
                         notification_text=notification_text,
                         recorded_date_time=recorded_date_time,
                         plant_id=plant_id,
@@ -743,9 +743,9 @@ class DashboardAPIView(viewsets.ModelViewSet):
             openapi.Parameter('machine_id', openapi.IN_QUERY, description="Machine ID", type=openapi.TYPE_INTEGER),
             openapi.Parameter('department_id', openapi.IN_QUERY, description="Department ID", type=openapi.TYPE_INTEGER),
             openapi.Parameter('product_id', openapi.IN_QUERY, description="Product ID", type=openapi.TYPE_INTEGER),
-            openapi.Parameter('defect_id', openapi.IN_QUERY, description="Defect ID", type=openapi.TYPE_INTEGER),
+            openapi.Parameter('area_id', openapi.IN_QUERY, description="area ID", type=openapi.TYPE_INTEGER),
         ],
-        operation_description="List defect counts for a specific plant within the specified date range and filters",
+        operation_description="List area counts for a specific plant within the specified date range and filters",
         responses={
             200: openapi.Response(description="Records retrieved successfully"),
             400: openapi.Response(description="Missing or invalid parameters"),
@@ -761,7 +761,7 @@ class DashboardAPIView(viewsets.ModelViewSet):
         machine_id = request.query_params.get('machine_id')
         department_id = request.query_params.get('department_id')
         product_id = request.query_params.get('product_id')
-        defect_id = request.query_params.get('defect_id')
+        area_id = request.query_params.get('area_id')
 
         if not plant_id:
             return Response({"message": "plant_id is required."}, status=status.HTTP_400_BAD_REQUEST)
@@ -780,7 +780,7 @@ class DashboardAPIView(viewsets.ModelViewSet):
             return Response({"message": "Invalid date format provided. Use YYYY-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check if any filters are applied
-        filters_applied = bool(machine_id or department_id or product_id or defect_id or from_date or to_date)
+        filters_applied = bool(machine_id or department_id or product_id or area_id or from_date or to_date)
 
         if not filters_applied:
             cache_key = f'{CACHE_KEY}'
@@ -796,8 +796,8 @@ class DashboardAPIView(viewsets.ModelViewSet):
             filter_criteria['department_id'] = department_id
         if product_id:
             filter_criteria['product_id'] = product_id
-        if defect_id:
-            filter_criteria['defects_id'] = defect_id
+        if area_id:
+            filter_criteria['Areas_id'] = area_id
 
         queryset = Dashboard.objects.filter(**filter_criteria)
         response_data = {}
@@ -815,19 +815,19 @@ class DashboardAPIView(viewsets.ModelViewSet):
 
             if (not from_date or from_date <= date) and (not to_date or date <= to_date):
                 try:
-                    defect = Defects.objects.get(id=record.defects_id)
-                    defect_name = defect.name
-                except Defects.DoesNotExist:
+                    area = Areas.objects.get(id=record.Areas_id)
+                    area_name = area.name
+                except Areas.DoesNotExist:
                     continue
 
                 product_name = record.product.name
                 products_set.add(product_name)
                 if str(date) not in response_data:
                     response_data[str(date)] = {}
-                if defect_name not in response_data[str(date)]:
-                    response_data[str(date)][defect_name] = 0
+                if area_name not in response_data[str(date)]:
+                    response_data[str(date)][area_name] = 0
 
-                response_data[str(date)][defect_name] += record.count
+                response_data[str(date)][area_name] += record.count
 
         products_list = list(products_set)
         response_data['active_products'] = products_list
@@ -856,9 +856,9 @@ class ReportsAPIView(viewsets.ViewSet):
             openapi.Parameter('machine_id', openapi.IN_QUERY, description="Machine ID", type=openapi.TYPE_INTEGER),
             openapi.Parameter('department_id', openapi.IN_QUERY, description="Department ID", type=openapi.TYPE_INTEGER),
             openapi.Parameter('product_id', openapi.IN_QUERY, description="Product ID", type=openapi.TYPE_INTEGER),
-            openapi.Parameter('defect_id', openapi.IN_QUERY, description="Defect ID", type=openapi.TYPE_INTEGER),
+            openapi.Parameter('area_id', openapi.IN_QUERY, description="area ID", type=openapi.TYPE_INTEGER),
         ],
-        operation_description="List defect counts for a specific plant within the specified date range and filters",
+        operation_description="List area counts for a specific plant within the specified date range and filters",
         responses={
             200: openapi.Response(description="Records retrieved successfully"),
             400: openapi.Response(description="Missing or invalid parameters"),
@@ -874,7 +874,7 @@ class ReportsAPIView(viewsets.ViewSet):
         machine_id = request.query_params.get('machine_id', None)
         department_id = request.query_params.get('department_id', None)
         product_id = request.query_params.get('product_id', None)
-        defect_id = request.query_params.get('defect_id', None)
+        area_id = request.query_params.get('area_id', None)
     
         if not plant_id:
             return Response({"message": "plant_id is required."}, status=status.HTTP_400_BAD_REQUEST)
@@ -901,8 +901,8 @@ class ReportsAPIView(viewsets.ViewSet):
             if product_id:
                 filter_criteria['product__id'] = product_id
 
-            if defect_id:
-                filter_criteria['defects__id'] = defect_id
+            if area_id:
+                filter_criteria['Areas__id'] = area_id
 
             # Apply date range filters
             queryset = model.objects.filter(**filter_criteria)
@@ -927,7 +927,7 @@ class ReportsAPIView(viewsets.ViewSet):
                 machine_name = Machines.objects.get(id=record.machines_id).name if record.machines_id else None
                 department_name = Department.objects.get(id=record.department_id).name if record.department_id else None
                 product_name = Products.objects.get(id=record.product_id).name if record.product_id else None
-                defect_name = Defects.objects.get(id=record.defects_id).name if record.defects_id else None
+                area_name = Areas.objects.get(id=record.Areas_id).name if record.Areas_id else None
                 plant_name = model.__name__
 
                 serialized_data = {
@@ -935,7 +935,7 @@ class ReportsAPIView(viewsets.ViewSet):
                     'machine': machine_name,
                     'department': department_name,
                     'product': product_name,
-                    'defect': defect_name,
+                    'area': area_name,
                     'image': record.image,
                     'plant': plant_name,
                     'recorded_date_time': record.recorded_date_time,
@@ -958,9 +958,9 @@ class AISmartAPIView(viewsets.ViewSet):
     @swagger_auto_schema(
         manual_parameters=[
             openapi.Parameter('plant_id', openapi.IN_QUERY, description="Plant ID", type=openapi.TYPE_INTEGER),
-            openapi.Parameter('defect_id', openapi.IN_QUERY, description="Defect ID", type=openapi.TYPE_INTEGER),
+            openapi.Parameter('area_id', openapi.IN_QUERY, description="area ID", type=openapi.TYPE_INTEGER),
         ],
-        operation_description="List defect counts for a specific plant within the specified date range and filters",
+        operation_description="List area counts for a specific plant within the specified date range and filters",
         responses={
             200: openapi.Response(description="Records retrieved successfully"),
             400: openapi.Response(description="Missing or invalid parameters"),
@@ -971,22 +971,22 @@ class AISmartAPIView(viewsets.ViewSet):
     )
     def list(self, request):
         plant_id = request.query_params.get('plant_id')
-        defect_id = request.query_params.get('defect_id')
+        area_id = request.query_params.get('area_id')
 
-        if not plant_id or not defect_id:
-            return Response({'error': 'plant_id and defect_id are required.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not plant_id or not area_id:
+            return Response({'error': 'plant_id and area_id are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             plant_id = int(plant_id)
-            defect_id = int(defect_id)
+            area_id = int(area_id)
         except ValueError:
-            return Response({'error': 'plant_id and defect_id must be integers.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'plant_id and area_id must be integers.'}, status=status.HTTP_400_BAD_REQUEST)
 
         model = self.MODEL_MAPPING.get(plant_id)
         if not model:
             return Response({'error': 'Invalid plant_id provided.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        queryset = model.objects.filter(defects_id=defect_id).select_related('machines').order_by('-recorded_date_time').values('image', 'recorded_date_time', 'machines__name')
+        queryset = model.objects.filter(Areas_id=area_id).select_related('machines').order_by('-recorded_date_time').values('image', 'recorded_date_time', 'machines__name')
 
         # Apply pagination
         paginator = CustomPagination()
@@ -1084,11 +1084,11 @@ class MachineParametersGraphView(APIView):
             "application/json": [
                 {
                     "date_time": "2024-06-13",
-                    "defect_percentage": 10.5
+                    "area_percentage": 10.5
                 },
                 {
                     "date_time": "2024-06-14",
-                    "defect_percentage": 20.0
+                    "area_percentage": 20.0
                 }
             ]
         })}
@@ -1104,28 +1104,28 @@ class MachineParametersGraphView(APIView):
         parameters_graph = MachineParametersGraph.objects.filter(**filters)
         
         # Aggregating counts per day
-        date_aggregates = defaultdict(lambda: {'defect_count': 0, 'total_production_count': 0})
+        date_aggregates = defaultdict(lambda: {'area_count': 0, 'total_production_count': 0})
         
         for graph in parameters_graph:
             date_only_str = graph.recorded_date_time[:10]  # Extracting date part
             if graph.machine_parameter.parameter == "Reject Counter":
-                date_aggregates[date_only_str]['defect_count'] += int(graph.params_count)
+                date_aggregates[date_only_str]['area_count'] += int(graph.params_count)
             elif graph.machine_parameter.parameter in ["Program Counter", "Machine Counter"]:
                 date_aggregates[date_only_str]['total_production_count'] += int(graph.params_count)
         
         data = []
         for date_only_str, counts in date_aggregates.items():
-            defect_count = counts['defect_count']
+            area_count = counts['area_count']
             total_production_count = counts['total_production_count']
             
             if total_production_count > 0:
-                defect_percentage = (defect_count / total_production_count) * 1000000
+                area_percentage = (area_count / total_production_count) * 1000000
             else:
-                defect_percentage = 0
+                area_percentage = 0
             
             data.append({
                 "date_time": date_only_str,
-                "defect_percentage": round(defect_percentage, 2)
+                "area_percentage": round(area_percentage, 2)
             })
 
         # Order the data by date
@@ -1186,8 +1186,8 @@ class MachineParametersGraphView(APIView):
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
 
-class DefectNotificationAPIView(viewsets.ViewSet):
-    queryset = DefectNotification.objects.all()
+class AreaNotificationAPIView(viewsets.ViewSet):
+    queryset = AreaNotification.objects.all()
     serializer_class = DefectNotificationSerializer
 
     @swagger_auto_schema(
@@ -1308,124 +1308,4 @@ class SystemStatusAPIView(viewsets.ViewSet):
         return Response({"results": serializer.data}, status=status.HTTP_200_OK)
 
 
-
-@method_decorator(csrf_exempt, name='dispatch')
-class DefectVSProduction(viewsets.ViewSet):
-
-    MODEL_MAPPING = {
-        2: NMBDashboard,
-        3: LiquidPlant,
-        4: ShampooPlant,
-    }
-
-    @swagger_auto_schema(
-        operation_description="List total number of defects and machine parameters (Machine Counter) for a specific plant for the current day and last 7 days",
-        manual_parameters=[
-            openapi.Parameter('plant_id', openapi.IN_QUERY, description="ID of the plant", type=openapi.TYPE_INTEGER)
-        ],
-        responses={
-            200: openapi.Response(
-                description="Data retrieved successfully",
-                examples={
-                    "application/json": {
-                        "plant_id": 2,
-                        "data_last_7_days": [
-                            {
-                                "date": "2024-07-10",
-                                "total_defects": 10,
-                                "machine_parameters": {
-                                    "params_count": "5"  # Use machine_counter here
-                                }
-                            },
-                            {
-                                "date": "2024-07-09",
-                                "total_defects": 5,
-                                "machine_parameters": {
-                                    "params_count": "3"  # Use machine_counter here
-                                }
-                            },
-                            # other days...
-                        ],
-                        "today": {
-                            "total_defects": 8,
-                            "machine_parameters": {
-                                "params_count": "2"  # Use machine_counter here
-                            }
-                        }
-                    }
-                }
-            ),
-            400: "Bad Request",
-            404: "Not Found"
-        }
-    )
-    def list(self, request):
-        plant_id = request.query_params.get('plant_id')
-
-        if not plant_id:
-            return Response({'error': 'plant_id parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Validate if the provided plant_id is valid
-        model_class = self.MODEL_MAPPING.get(int(plant_id))
-        if not model_class:
-            return Response({'error': 'Invalid plant_id'}, status=status.HTTP_404_NOT_FOUND)
-
-        try:
-            # Calculate date range for today and last 7 days
-            today = date.today()
-            date_range = [(today - timedelta(days=i)).isoformat() for i in range(7)]
-
-            # Query total defects and machine parameters for each day
-            data_last_7_days = []
-            for date_str in date_range:
-                # Query total defects for the current day
-                total_defects = model_class.objects.filter(
-                    plant_id=plant_id,
-                    recorded_date_time__startswith=date_str
-                ).count()
-
-                # Query machine parameters (Machine Counter) for the current day
-                machine_parameters = MachineParametersGraph.objects.filter(
-                    plant_id=plant_id,
-                    machine_parameter__parameter='Machine Counter',
-                    recorded_date_time__startswith=date_str
-                ).first()
-                params_count = machine_parameters.params_count if machine_parameters else 0
-
-                # Append data for the current day to the list
-                data_last_7_days.append({
-                    'date': date_str,
-                    'total_defects': total_defects,
-                    'total_production': params_count
-                    
-                })
-
-            # Query total defects and machine parameters (Machine Counter) for today
-            start_of_today = today.isoformat()
-
-            total_defects_today = model_class.objects.filter(
-                plant_id=plant_id,
-                recorded_date_time__startswith=start_of_today
-            ).count()
-
-            machine_parameters_today = MachineParametersGraph.objects.filter(
-                plant_id=plant_id,
-                machine_parameter__parameter='Machine Counter',
-                recorded_date_time__startswith=start_of_today
-            ).first()
-            params_count_today = machine_parameters_today.params_count if machine_parameters_today else 0
-
-            return Response({
-                'plant_id': plant_id,
-                'data_last_7_days': data_last_7_days,
-                'today': {
-                    'total_defects': total_defects_today,
-                    'total_production': params_count_today
-                    
-                }
-            }, status=status.HTTP_200_OK)
-
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
 

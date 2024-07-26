@@ -20,9 +20,9 @@ class Machines(models.Model):
     def __str__(self):
         return self.name if self.name else ""
     
-class Defects(models.Model):
+class Areas(models.Model):
     class Meta:
-        db_table = 'Defects'
+        db_table = 'Areas'
     name = models.CharField(max_length=100,blank=False,null=False)
     color_code = models.CharField(max_length=100,blank=False,null=False)
     # organization = models.ForeignKey(Organization,on_delete=models.SET_NULL,blank=True,null=True)
@@ -60,7 +60,7 @@ class NMBDashboard(models.Model):
     machines = models.ForeignKey(Machines,on_delete=models.CASCADE,null=False,blank=False)
     department = models.ForeignKey(Department,on_delete=models.CASCADE,null=False,blank=False)
     product = models.ForeignKey(Products,on_delete=models.CASCADE,null=False,blank=False)
-    defects = models.ForeignKey(Defects,on_delete=models.CASCADE,blank=False,null=False)
+    defects = models.ForeignKey(Areas,on_delete=models.CASCADE,blank=False,null=False)
     image = models.CharField(max_length=250,blank=True,null=True)
     plant = models.ForeignKey(Plant,on_delete=models.CASCADE,blank=False,null=False)
     recorded_date_time = models.CharField(max_length=200,blank=True,null=True)
@@ -73,7 +73,7 @@ class LiquidPlant(models.Model): # liquid means comfort sachet plant
     machines = models.ForeignKey(Machines,on_delete=models.CASCADE,null=False,blank=False)
     department = models.ForeignKey(Department,on_delete=models.CASCADE,null=False,blank=False)
     product = models.ForeignKey(Products,on_delete=models.CASCADE,null=False,blank=False)
-    defects = models.ForeignKey(Defects,on_delete=models.CASCADE,blank=False,null=False)
+    defects = models.ForeignKey(Areas,on_delete=models.CASCADE,blank=False,null=False)
     image = models.CharField(max_length=250,blank=True,null=True)
     plant = models.ForeignKey(Plant,on_delete=models.CASCADE,blank=False,null=False)
     recorded_date_time = models.CharField(max_length=200,blank=True,null=True)
@@ -85,7 +85,7 @@ class ShampooPlant(models.Model):  ## shampoo plant
     machines = models.ForeignKey(Machines,on_delete=models.CASCADE,null=False,blank=False)
     department = models.ForeignKey(Department,on_delete=models.CASCADE,null=False,blank=False)
     product = models.ForeignKey(Products,on_delete=models.CASCADE,null=False,blank=False)
-    defects = models.ForeignKey(Defects,on_delete=models.CASCADE,blank=False,null=False)
+    defects = models.ForeignKey(Areas,on_delete=models.CASCADE,blank=False,null=False)
     image = models.CharField(max_length=250,blank=True,null=True)
     plant = models.ForeignKey(Plant,on_delete=models.CASCADE,blank=False,null=False)
     recorded_date_time = models.CharField(max_length=200,blank=True,null=True)
@@ -95,7 +95,7 @@ class RootCauseAnalysis(models.Model):
     class Meta:
         db_table = 'Root Cause Analysis'
     
-    defect = models.ForeignKey(Defects,on_delete=models.CASCADE,null=True,blank=True)
+    defect = models.ForeignKey(Areas,on_delete=models.CASCADE,null=True,blank=True)
     rca1 = models.CharField(max_length=255,null=True,blank=True)
     rca2 = models.CharField(max_length=255,null=True,blank=True)
     rca3 = models.CharField(max_length=255,null=True,blank=True)
@@ -137,10 +137,10 @@ class MachineParametersGraph(models.Model):
     plant = models.ForeignKey(Plant,on_delete=models.CASCADE,null=True,blank=True)
 
 
-class DefectNotification(models.Model):
+class AreaNotification(models.Model):
     class Meta:
-        db_table = 'DefectNotification'
-    defect = models.ForeignKey(Defects,on_delete=models.CASCADE,null=False,blank=False)
+        db_table = 'AreaNotification'
+    defect = models.ForeignKey(Areas,on_delete=models.CASCADE,null=False,blank=False)
     notification_text = models.TextField(null=True,blank=True)    
     recorded_date_time = models.CharField(max_length=100,blank=True,null=True)
     plant = models.ForeignKey(Plant,on_delete=models.CASCADE,null=False,blank=False)
@@ -163,7 +163,7 @@ class Dashboard(models.Model):
     machines = models.ForeignKey(Machines, on_delete=models.CASCADE)
     department = models.ForeignKey(Department, on_delete=models.CASCADE)
     product = models.ForeignKey(Products, on_delete=models.CASCADE)
-    defects = models.ForeignKey(Defects, on_delete=models.CASCADE)
+    defects = models.ForeignKey(Areas, on_delete=models.CASCADE)
     plant = models.ForeignKey(Plant, on_delete=models.CASCADE)
     recorded_date_time = models.CharField(max_length=255)  # Store date and time as string
     count = models.BigIntegerField(default=0)  # Count of occurrences

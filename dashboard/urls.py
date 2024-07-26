@@ -11,13 +11,13 @@ router.register('plant', PlantAPIView, basename='plant')
 router.register('machine',MachineAPIView,basename='Machines')
 router.register('product',ProductAPIView,basename='Products')
 router.register('department',DepartmentAPIView,basename='Department')
-router.register('defect',DefectAPIView,basename='Defect')
+router.register('area',AreaAPIView,basename='Defect')
 router.register('dashboard',DashboardAPIView,basename='Dashboard')
 router.register('reports',ReportsAPIView,basename='Reports')
 router.register('ai-smart',AISmartAPIView,basename='AISmartView')
-router.register('defect-notifications',DefectNotificationAPIView,basename="Defect Notifications")
+router.register('area-notifications',AreaNotificationAPIView,basename="Defect Notifications")
 router.register('system-status',SystemStatusAPIView,basename="System Status")
-router.register('defct-vs-machine', DefectVSProduction, basename='plant-data')
+# router.register('defct-vs-machine', DefectVSProduction, basename='plant-data')
 
 urlpatterns= [
     # path('dashboard/',CreateDashboardAPIView.as_view(),name='CreateDashboard'),
