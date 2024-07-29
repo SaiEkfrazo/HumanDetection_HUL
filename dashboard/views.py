@@ -824,7 +824,7 @@ class ReportsAPIView(viewsets.ViewSet):
                 filter_criteria['product__id'] = product_id
 
             if area_id:
-                filter_criteria['Areas__id'] = area_id
+                filter_criteria['areas__id'] = area_id
 
             # Apply date range filters
             queryset = model.objects.filter(**filter_criteria)
@@ -849,7 +849,7 @@ class ReportsAPIView(viewsets.ViewSet):
                 machine_name = Machines.objects.get(id=record.machines_id).name if record.machines_id else None
                 department_name = Department.objects.get(id=record.department_id).name if record.department_id else None
                 product_name = Products.objects.get(id=record.product_id).name if record.product_id else None
-                area_name = Areas.objects.get(id=record.Areas_id).name if record.Areas_id else None
+                area_name = Areas.objects.get(id=record.areas_id).name if record.areas_id else None
                 plant_name = model.__name__
 
                 serialized_data = {
@@ -861,6 +861,7 @@ class ReportsAPIView(viewsets.ViewSet):
                     'image': record.image,
                     'plant': plant_name,
                     'recorded_date_time': record.recorded_date_time,
+                    'downtime':record.duration
                 }
                 response_data.append(serialized_data)
 
@@ -908,7 +909,7 @@ class AISmartAPIView(viewsets.ViewSet):
         if not model:
             return Response({'error': 'Invalid plant_id provided.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        queryset = model.objects.filter(Areas_id=area_id).select_related('machines').order_by('-recorded_date_time').values('image', 'recorded_date_time', 'machines__name')
+        queryset = model.objects.filter(areas_id=area_id).select_related('machines').order_by('-recorded_date_time').values('image', 'recorded_date_time', 'machines__name')
 
         # Apply pagination
         paginator = CustomPagination()
