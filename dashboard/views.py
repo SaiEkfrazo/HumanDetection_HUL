@@ -765,7 +765,7 @@ class ReportsAPIView(viewsets.ViewSet):
     # permission_classes = [IsAuthenticated]
 
     MODEL_MAPPING = {
-        2: Khamgaon,
+        1: Khamgaon,
         3: LiquidPlant,
         4: ShampooPlant,
     }
@@ -872,7 +872,7 @@ class ReportsAPIView(viewsets.ViewSet):
 
 class AISmartAPIView(viewsets.ViewSet):
     MODEL_MAPPING = {
-        2: Khamgaon,
+        1: Khamgaon,
         3: LiquidPlant,
         4: ShampooPlant,
     }
