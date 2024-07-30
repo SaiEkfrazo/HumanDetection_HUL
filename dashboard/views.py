@@ -747,7 +747,7 @@ class DashboardAPIView(viewsets.ModelViewSet):
                     response_data[str(date)][area_name] = 0
 
                 # Convert the duration from seconds to minutes and add to the total
-                duration_in_minutes = record.total_duration / 60  # Convert to minutes
+                duration_in_minutes = record.total_duration  # Convert to minutes
                 response_data[str(date)][area_name] += duration_in_minutes
                 response_data[str(date)]['total_duration'] += duration_in_minutes
 
