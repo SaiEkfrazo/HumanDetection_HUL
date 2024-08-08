@@ -55,6 +55,11 @@ class Department(models.Model):
     def __str__(self):
         return self.name if self.name else ""
 
+class StoppageType(models.Model):
+    class Meta:
+        db_table = 'Stoppage'
+    name = models.CharField(max_length=100,blank=True,null=True)
+    is_active = models.BooleanField(default=True)
 
 class Khamgaon(models.Model): ### For human detection ###
     class Meta:
@@ -68,7 +73,7 @@ class Khamgaon(models.Model): ### For human detection ###
     plant = models.ForeignKey(Plant,on_delete=models.CASCADE,blank=True,null=True)
     recorded_date_time = models.CharField(max_length=200,blank=True,null=True)
     duration = models.FloatField(null=True,blank=True)
-
+    type_of_stoppage = models.ForeignKey(StoppageType,on_delete=models.CASCADE,null=True,blank=True)
 
 class LiquidPlant(models.Model): # liquid means comfort sachet plant
     class Meta:
@@ -171,7 +176,7 @@ class Dashboard(models.Model):
     plant = models.ForeignKey(Plant, on_delete=models.CASCADE,null=True,blank=True)
     recorded_date_time = models.CharField(max_length=255)  # Store date and time as string
     total_duration = models.FloatField(default=0)  # Count of occurrences
-
+    type_of_stoppage = models.ForeignKey(StoppageType,on_delete=models.CASCADE,null=True,blank=True)
     class Meta:
         db_table = 'Dashboard'
         indexes = [

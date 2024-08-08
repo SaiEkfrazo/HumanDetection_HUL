@@ -596,7 +596,9 @@ class DashboardAPIView(viewsets.ModelViewSet):
                 'areas_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='Area ID'),
                 'duration': openapi.Schema(type=openapi.TYPE_NUMBER, description='Duration in seconds'),
                 'plant_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='Plant ID'),
-                'recorded_date_time': openapi.Schema(type=openapi.TYPE_STRING, description='Recorded Date Time')
+                'recorded_date_time': openapi.Schema(type=openapi.TYPE_STRING, description='Recorded Date Time'),
+                'type_of_stoppage': openapi.Schema(type=openapi.TYPE_INTEGER, description='Stoppage Type ID')  # Ensure this field is added
+
             },
             # required=['machines_id', 'areas_id', 'duration', 'plant_id', 'recorded_date_time']
         ),
@@ -613,8 +615,9 @@ class DashboardAPIView(viewsets.ModelViewSet):
         duration = request.data.get('duration', None)
         plant_id = request.data.get('plant_id', None)
         recorded_date_time = request.data.get('recorded_date_time', None)
+        stoppage_type_id = request.data.get('type_of_stoppage', None)
 
-        if not all([machines_id, areas_id, duration, plant_id, recorded_date_time]):
+        if not all([machines_id, areas_id, duration, plant_id, recorded_date_time, stoppage_type_id]):
             return Response({'error': 'Missing required fields.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
@@ -623,13 +626,20 @@ class DashboardAPIView(viewsets.ModelViewSet):
             if not model:
                 return Response({'error': 'Invalid plant_id provided.'}, status=status.HTTP_400_BAD_REQUEST)
 
+            # Retrieve the StoppageType instance
+            try:
+                stoppage_type = StoppageType.objects.get(id=stoppage_type_id)
+            except StoppageType.DoesNotExist:
+                return Response({'error': 'Invalid type_of_stoppage ID provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
             # Create a new record in the appropriate model (e.g., Khamgaon)
             record = model.objects.create(
                 machines_id=machines_id,
                 areas_id=areas_id,
                 duration=duration,
                 plant_id=plant_id,
-                recorded_date_time=recorded_date_time
+                recorded_date_time=recorded_date_time,
+                type_of_stoppage=stoppage_type
             )
 
             # Extract just the date from recorded_date_time for Dashboard entry
@@ -641,6 +651,7 @@ class DashboardAPIView(viewsets.ModelViewSet):
                 areas_id=areas_id,
                 plant_id=plant_id,
                 recorded_date_time=recorded_date,
+                type_of_stoppage=stoppage_type,
                 defaults={'total_duration': duration}
             )
 
@@ -652,7 +663,7 @@ class DashboardAPIView(viewsets.ModelViewSet):
             return Response({'message': 'Record created successfully'}, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({'error': f'Failed to save data: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+
     @swagger_auto_schema(
     manual_parameters=[
         openapi.Parameter('plant_id', openapi.IN_QUERY, description="Plant ID", type=openapi.TYPE_INTEGER),
@@ -661,7 +672,9 @@ class DashboardAPIView(viewsets.ModelViewSet):
         openapi.Parameter('machine_id', openapi.IN_QUERY, description="Machine ID", type=openapi.TYPE_INTEGER),
         openapi.Parameter('department_id', openapi.IN_QUERY, description="Department ID", type=openapi.TYPE_INTEGER),
         openapi.Parameter('product_id', openapi.IN_QUERY, description="Product ID", type=openapi.TYPE_INTEGER),
-        openapi.Parameter('area_id', openapi.IN_QUERY, description="Area ID", type=openapi.TYPE_INTEGER),
+        openapi.Parameter('area', openapi.IN_QUERY, description="Area ID", type=openapi.TYPE_INTEGER),
+        openapi.Parameter('type_of_stoppage', openapi.IN_QUERY, description="Stoppage ID", type=openapi.TYPE_INTEGER),
+
     ],
     operation_description="List area counts for a specific plant within the specified date range and filters",
     responses={
@@ -679,8 +692,8 @@ class DashboardAPIView(viewsets.ModelViewSet):
         machine_id = request.query_params.get('machine_id')
         department_id = request.query_params.get('department_id')
         product_id = request.query_params.get('product_id')
-        area_id = request.query_params.get('area_id')
-
+        area_id = request.query_params.get('area')
+        stoppage_type = request.query_params.get('type_of_stoppage')
         if not plant_id:
             return Response({"message": "plant_id is required."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -698,11 +711,12 @@ class DashboardAPIView(viewsets.ModelViewSet):
             return Response({"message": "Invalid date format provided. Use YYYY-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check if any filters are applied
-        filters_applied = bool(machine_id or department_id or product_id or area_id or from_date or to_date)
+        filters_applied = bool(machine_id or department_id or product_id or area_id or from_date or to_date or stoppage_type)
 
         if not filters_applied:
             cache_key = f'{CACHE_KEY}'
             cached_data = cache.get(cache_key)
+            print('cached_data',cached_data)
             if cached_data:
                 return Response(cached_data, status=status.HTTP_200_OK)
 
@@ -715,6 +729,9 @@ class DashboardAPIView(viewsets.ModelViewSet):
             filter_criteria['product_id'] = product_id
         if area_id:
             filter_criteria['areas_id'] = area_id
+        print('area',area_id)
+        if stoppage_type:
+            filter_criteria['type_of_stoppage__id'] = area_id
 
         queryset = Dashboard.objects.filter(**filter_criteria)
         response_data = {}
@@ -747,7 +764,7 @@ class DashboardAPIView(viewsets.ModelViewSet):
                     response_data[str(date)][area_name] = 0
 
                 # Convert the duration from seconds to minutes and add to the total
-                duration_in_minutes = record.total_duration / 60  # Convert to minutes
+                duration_in_minutes = record.total_duration  # Convert to minutes
                 response_data[str(date)][area_name] += duration_in_minutes
                 response_data[str(date)]['total_duration'] += duration_in_minutes
 
@@ -778,7 +795,9 @@ class ReportsAPIView(viewsets.ViewSet):
             openapi.Parameter('machine_id', openapi.IN_QUERY, description="Machine ID", type=openapi.TYPE_INTEGER),
             openapi.Parameter('department_id', openapi.IN_QUERY, description="Department ID", type=openapi.TYPE_INTEGER),
             openapi.Parameter('product_id', openapi.IN_QUERY, description="Product ID", type=openapi.TYPE_INTEGER),
-            openapi.Parameter('area_id', openapi.IN_QUERY, description="area ID", type=openapi.TYPE_INTEGER),
+            openapi.Parameter('area', openapi.IN_QUERY, description="area", type=openapi.TYPE_INTEGER),
+            openapi.Parameter('type_of_stoppage', openapi.IN_QUERY, description="Stoppage Id", type=openapi.TYPE_INTEGER),
+
         ],
         operation_description="List area counts for a specific plant within the specified date range and filters",
         responses={
@@ -796,8 +815,9 @@ class ReportsAPIView(viewsets.ViewSet):
         machine_id = request.query_params.get('machine_id', None)
         department_id = request.query_params.get('department_id', None)
         product_id = request.query_params.get('product_id', None)
-        area_id = request.query_params.get('area_id', None)
-    
+        area_id = request.query_params.get('area', None)
+        stoppage_type = request.query_params.get("type_of_stoppage", None)
+        
         if not plant_id:
             return Response({"message": "plant_id is required."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -826,6 +846,9 @@ class ReportsAPIView(viewsets.ViewSet):
             if area_id:
                 filter_criteria['areas__id'] = area_id
 
+            if stoppage_type:
+                filter_criteria['type_of_stoppage__id'] = stoppage_type
+
             # Apply date range filters
             queryset = model.objects.filter(**filter_criteria)
 
@@ -852,6 +875,9 @@ class ReportsAPIView(viewsets.ViewSet):
                 area_name = Areas.objects.get(id=record.areas_id).name if record.areas_id else None
                 plant_name = model.__name__
 
+                # Convert type_of_stoppage to its name
+                type_of_stoppage_name = StoppageType.objects.get(id=record.type_of_stoppage_id).name if record.type_of_stoppage_id else None
+
                 serialized_data = {
                     'id': record.id,
                     'machine': machine_name,
@@ -861,7 +887,8 @@ class ReportsAPIView(viewsets.ViewSet):
                     'image': record.image,
                     'plant': plant_name,
                     'recorded_date_time': record.recorded_date_time,
-                    'downtime':record.duration
+                    'downtime': record.duration,
+                    'type_of_stoppage': type_of_stoppage_name
                 }
                 response_data.append(serialized_data)
 
@@ -869,7 +896,6 @@ class ReportsAPIView(viewsets.ViewSet):
 
         except Exception as e:
             return Response({"message": f"Failed to retrieve records: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 class AISmartAPIView(viewsets.ViewSet):
     MODEL_MAPPING = {
         2: Khamgaon,
@@ -1232,3 +1258,10 @@ class SystemStatusAPIView(viewsets.ViewSet):
 
 
 
+class StoppageAPIView(viewsets.ViewSet):
+    queryset = StoppageType.objects.all()
+    serializer_class = StoppageSerializer
+    def list(self,request):
+        serializer = StoppageSerializer(self.queryset,many=True)
+        
+        return Response({'results':serializer.data},status = status.HTTP_200_OK)

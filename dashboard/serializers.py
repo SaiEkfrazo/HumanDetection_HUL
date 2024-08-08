@@ -102,3 +102,8 @@ class SystemStatusSerializer(serializers.ModelSerializer):
     class Meta:
         model = SystemStatus
         fields = ['machine', 'machine_name', 'plant', 'system_status']
+
+class StoppageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StoppageType
+        fields = "__all__"

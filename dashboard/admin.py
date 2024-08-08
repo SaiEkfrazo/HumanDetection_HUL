@@ -12,11 +12,16 @@ class RootCauseAnalysisAdmin(ImportExportModelAdmin):
 
 @admin.register(Areas)
 class AreasAdmin(ImportExportModelAdmin):
-    list_display = ('name','color_code','plant')
+    list_display = ('id','name','color_code','plant')
 
 @admin.register(Machines)
 class MachineAdmin(ImportExportModelAdmin):
     list_display = ('id','name', 'plant','color_code')  
+
+
+@admin.register(StoppageType)
+class StoppageAdmin(ImportExportModelAdmin):
+    list_display = ('id','name', 'is_active')  
 
 @admin.register(Products)
 class ProductsAdmin(ImportExportModelAdmin):
