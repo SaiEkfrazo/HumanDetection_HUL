@@ -131,23 +131,23 @@ SWAGGER_SETTINGS = {
 # settings for local mysql 
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'HumanDetection_HUL',                  # Local database name
-        'USER': 'saitreddy',            # Local database user
-        'PASSWORD': 'sai',              # Local database password
-        'HOST': 'localhost',            # Local database host
-        'PORT': '3306',                 # Local database port
-    },
-    # 'default':
-    #        {
-    #        'ENGINE': 'django.db.backends.mysql',
-    #        'NAME': 'vin',
-    #        'USER': 'root',  
-    #        'PASSWORD': 'sai',  
-    #        'HOST': 'db',  
-    #        'PORT': '3306',    
-    #        }
+    # 'default': {
+    #     'ENGINE': 'django.db.backends.mysql',
+    #     'NAME': 'HumanDetection_HUL',                  # Local database name
+    #     'USER': 'root',            # Local database user
+    #     'PASSWORD': 'AIVolved',              # Local database password
+    #     'HOST': '159.65.157.118',            # Local database host
+    #     'PORT': '3306',                 # Local database port
+    # },
+    'default':
+           {
+           'ENGINE': 'django.db.backends.mysql',
+           'NAME': 'vin',
+           'USER': 'root',  
+           'PASSWORD': 'sai',  
+           'HOST': 'db',  
+           'PORT': '3306',    
+           }
     # 'cloud': {
     #     'ENGINE': 'django.db.backends.mysql',
     #     'NAME': 'VIN_LOCAL',            # Cloud database name
@@ -221,15 +221,15 @@ REST_FRAMEWORK = {
 
 ##### for cacheing settings ##### 
 
-CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': 'redis://localhost:6379/1',
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        }
-    }
-}
+# CACHES = {
+#     'default': {
+#         'BACKEND': 'django_redis.cache.RedisCache',
+#         'LOCATION': 'redis://localhost:6379/1',
+#         'OPTIONS': {
+#             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+#         }
+#     }
+# }
 
 
 ### Simple JWT settings 
