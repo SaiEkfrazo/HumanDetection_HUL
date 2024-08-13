@@ -898,7 +898,7 @@ class ReportsAPIView(viewsets.ViewSet):
             return Response({"message": f"Failed to retrieve records: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 class AISmartAPIView(viewsets.ViewSet):
     MODEL_MAPPING = {
-        1: Khamgaon,
+        2: Khamgaon,
         3: LiquidPlant,
         4: ShampooPlant,
     }
