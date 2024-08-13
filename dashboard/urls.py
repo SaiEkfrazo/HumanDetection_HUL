@@ -18,6 +18,7 @@ router.register('ai-smart',AISmartAPIView,basename='AISmartView')
 router.register('area-notifications',AreaNotificationAPIView,basename="Defect Notifications")
 router.register('system-status',SystemStatusAPIView,basename="System Status")
 router.register('stoppage',StoppageAPIView,basename='Stoppage')
+router.register('stoppage-graph',StoppageGraphAPIView,basename='StoppageGraph')
 # router.register('defct-vs-machine', DefectVSProduction, basename='plant-data')
 
 urlpatterns= [

@@ -38,6 +38,8 @@ import os
 from utils.custom_pagination import *
 from django.db.models import Count
 from datetime import timedelta, date
+import re
+
 # Create your views here.
 
 CACHE_TIMEOUT = 300  # Cache timeout in seconds (1 minute)
@@ -1265,3 +1267,76 @@ class StoppageAPIView(viewsets.ViewSet):
         serializer = StoppageSerializer(self.queryset,many=True)
         
         return Response({'results':serializer.data},status = status.HTTP_200_OK)
+    
+class StoppageGraphAPIView(viewsets.ViewSet):
+    @swagger_auto_schema(
+        responses={
+            200: openapi.Response(
+                description="Aggregated stoppage data by shifts and date",
+                examples={
+                    "application/json": {
+                        "2024-08-13": {
+                            "shift1": {
+                                "major": 302,
+                                "minor": 230
+                            },
+                            "shift2": {
+                                "major": 150,
+                                "minor": 120
+                            },
+                            "shift3": {
+                                "major": 250,
+                                "minor": 180
+                            }
+                        }
+                    }
+                }
+            )
+        }
+    )
+    def list(self, request):
+        # Get all records
+        records = Khamgaon.objects.all()
+        
+        # Initialize data structure
+        data = defaultdict(lambda: {
+            'shift1': {'major': 0, 'minor': 0},
+            'shift2': {'major': 0, 'minor': 0},
+            'shift3': {'major': 0, 'minor': 0}
+        })
+
+        # Helper function to determine shift based on time
+        def get_shift(recorded_datetime):
+            try:
+                hour = int(recorded_datetime.split('T')[1].split(':')[0])
+            except (IndexError, ValueError):
+                print(f"Error extracting hour from {recorded_datetime}")
+                return None
+            if 23 <= hour or hour < 7:
+                return 'shift1'
+            elif 7 <= hour < 15:
+                return 'shift2'
+            elif 15 <= hour < 23:
+                return 'shift3'
+            return None
+
+        # Process each record
+        for record in records:
+            date_key = record.recorded_date_time.split('T')[0]
+            shift = get_shift(record.recorded_date_time)
+            if shift:
+                stoppage_type = record.type_of_stoppage
+                if stoppage_type:
+                    stoppage_counts = data[date_key][shift]
+                    duration = record.duration if record.duration else 0
+                    print(f"Processing record: date={date_key}, shift={shift}, stoppage_type={stoppage_type.name}, duration={duration}")
+                    if stoppage_type.name == 'Major':
+                        stoppage_counts['major'] += duration
+                    elif stoppage_type.name == 'Minor':
+                        stoppage_counts['minor'] += duration
+
+        # Convert defaultdict to dict
+        formatted_data = dict(data)
+        print('Formatted data:', formatted_data)
+
+        return Response(formatted_data, status=status.HTTP_200_OK)
