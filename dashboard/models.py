@@ -182,3 +182,13 @@ class Dashboard(models.Model):
         indexes = [
             models.Index(fields=['recorded_date_time']),                        # Index on recorded_date_time
         ]
+
+class DownTimeAnalysis(models.Model):
+    class Meta:
+        db_table = "DownTimeAnalysis"
+    machine_stop_time = models.CharField(max_length=100,blank=True,null=True)
+    machine_stop_duration = models.CharField(max_length=100,blank=True,null=True)
+    gate = models.CharField(max_length=100,blank=True,null=True)
+    gate_open_duration = models.CharField(max_length=100,blank=False,null=False)
+    areas = models.ForeignKey(Areas,blank=True,null=True,on_delete=models.SET_NULL)
+    area_duration = models.CharField(max_length=100,blank=True,null=True)

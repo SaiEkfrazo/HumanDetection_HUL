@@ -107,3 +107,11 @@ class StoppageSerializer(serializers.ModelSerializer):
     class Meta:
         model = StoppageType
         fields = "__all__"
+
+class DownTimeAnalysisSerializer(serializers.ModelSerializer):
+    # area_name = serializers.CharField(source='areas.name', read_only=True)
+
+    class Meta:
+        model = DownTimeAnalysis
+        # fields = ['machine_stop_time', 'machine_stop_duration', 'gate', 'gate_open_duration', 'area_name', 'area_duration']
+        fields = "__all__"

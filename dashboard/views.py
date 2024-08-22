@@ -1340,3 +1340,54 @@ class StoppageGraphAPIView(viewsets.ViewSet):
         print('Formatted data:', formatted_data)
 
         return Response(formatted_data, status=status.HTTP_200_OK)
+    
+
+class DownTimeAnalysisViewSet(viewsets.ViewSet):
+    def list(self, request):
+        queryset = DownTimeAnalysis.objects.all()
+        
+        from_date = request.query_params.get('from_date')
+        to_date = request.query_params.get('to_date')
+        area_id = request.query_params.get('areas')
+        gate = request.query_params.get('gate')
+
+        if from_date:
+            queryset = queryset.filter(machine_stop_time__gte=f"{from_date}T00:00:00")
+        if to_date:
+            queryset = queryset.filter(machine_stop_time__lte=f"{to_date}T23:59:00")
+
+        if area_id:
+            queryset = queryset.filter(areas__id=area_id)
+        
+        if gate:
+            queryset = queryset.filter(gate=gate)
+        
+        # Order by the latest machine_stop_time
+        queryset = queryset.order_by('-machine_stop_time')
+        
+        # Apply pagination
+        paginator = CustomPagination()
+        paginated_queryset = paginator.paginate_queryset(queryset, request)
+        
+        # Process results to include area_name
+        results = []
+        for item in paginated_queryset:
+            data = {
+                'id': item.id,
+                'machine_stop_time': item.machine_stop_time,
+                'machine_stop_duration': item.machine_stop_duration,
+                'gate': item.gate,
+                'gate_open_duration': item.gate_open_duration,
+                'area_duration': item.area_duration,
+                'area_name': item.areas.name if item.areas else None,  # Include area_name here
+            }
+            results.append(data)
+        
+        return paginator.get_paginated_response(results)
+
+    def create(self, request):
+        serializer = DownTimeAnalysisSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message":"Record Created Successfully."}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
