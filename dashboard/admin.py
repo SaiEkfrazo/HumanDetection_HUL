@@ -56,3 +56,7 @@ admin.site.register(AreaNotification)
 @admin.register(SystemStatus)
 class PlantAdmin(ImportExportModelAdmin):
     list_display = ('id','machine','plant', 'system_status')
+
+@admin.register(Dashboard)
+class DashboardAdmin(ImportExportModelAdmin):
+    list_display = ('id','machines',"department","product","recorded_date_time","total_duration","shift")

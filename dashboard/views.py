@@ -571,7 +571,7 @@ import re
 from rest_framework import status
 from rest_framework.response import Response
 from django.core.cache import cache
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta,time
 from collections import defaultdict
 from django.db import transaction
 
@@ -610,7 +610,62 @@ class DashboardAPIView(viewsets.ModelViewSet):
             500: openapi.Response(description="Failed to save data")
         }
     )
-    @transaction.atomic
+    # @transaction.atomic
+    # def create(self, request, *args, **kwargs):
+    #     machines_id = request.data.get('machines_id', None)
+    #     areas_id = request.data.get('areas_id', None)
+    #     duration = request.data.get('duration', None)
+    #     plant_id = request.data.get('plant_id', None)
+    #     recorded_date_time = request.data.get('recorded_date_time', None)
+    #     stoppage_type_id = request.data.get('type_of_stoppage', None)
+
+    #     if not all([machines_id, areas_id, duration, plant_id, recorded_date_time, stoppage_type_id]):
+    #         return Response({'error': 'Missing required fields.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    #     try:
+    #         # Determine the model to use based on the plant_id
+    #         model = self.MODEL_MAPPING.get(plant_id)
+    #         if not model:
+    #             return Response({'error': 'Invalid plant_id provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    #         # Retrieve the StoppageType instance
+    #         try:
+    #             stoppage_type = StoppageType.objects.get(id=stoppage_type_id)
+    #         except StoppageType.DoesNotExist:
+    #             return Response({'error': 'Invalid type_of_stoppage ID provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    #         # Create a new record in the appropriate model (e.g., Khamgaon)
+    #         record = model.objects.create(
+    #             machines_id=machines_id,
+    #             areas_id=areas_id,
+    #             duration=duration,
+    #             plant_id=plant_id,
+    #             recorded_date_time=recorded_date_time,
+    #             type_of_stoppage=stoppage_type
+    #         )
+
+    #         # Extract just the date from recorded_date_time for Dashboard entry
+    #         recorded_date = recorded_date_time.split('T')[0]
+
+    #         # Update or create the record in the Dashboard table
+    #         dashboard_entry, created = Dashboard.objects.get_or_create(
+    #             machines_id=machines_id,
+    #             areas_id=areas_id,
+    #             plant_id=plant_id,
+    #             recorded_date_time=recorded_date,
+    #             type_of_stoppage=stoppage_type,
+    #             defaults={'total_duration': duration}
+    #         )
+
+    #         if not created:
+    #             # If the record already exists, update the total_duration
+    #             dashboard_entry.total_duration += duration
+    #             dashboard_entry.save()
+
+    #         return Response({'message': 'Record created successfully'}, status=status.HTTP_201_CREATED)
+    #     except Exception as e:
+    #         return Response({'error': f'Failed to save data: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     def create(self, request, *args, **kwargs):
         machines_id = request.data.get('machines_id', None)
         areas_id = request.data.get('areas_id', None)
@@ -634,6 +689,36 @@ class DashboardAPIView(viewsets.ModelViewSet):
             except StoppageType.DoesNotExist:
                 return Response({'error': 'Invalid type_of_stoppage ID provided.'}, status=status.HTTP_400_BAD_REQUEST)
 
+            # Parse recorded_date_time to extract date and time
+            try:
+                date_str, time_str = recorded_date_time.split('T')
+                record_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                record_time = datetime.strptime(time_str, '%H:%M:%S').time()
+            except ValueError:
+                return Response({'error': 'Invalid recorded_date_time format. Use YYYY-MM-DDTHH:MM:SS.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Define shift time ranges
+            shifts = {
+                'shift1': (time(23, 0), time(7, 0)),
+                'shift2': (time(7, 0), time(15, 0)),
+                'shift3': (time(15, 0), time(23, 0)),
+            }
+
+            # Determine the shift
+            shift = None
+            for shift_name, (start_time, end_time) in shifts.items():
+                if start_time > end_time:  # Shift spans midnight
+                    if (record_time >= start_time) or (record_time < end_time):
+                        shift = shift_name
+                        break
+                else:
+                    if (record_time >= start_time) and (record_time < end_time):
+                        shift = shift_name
+                        break
+
+            if not shift:
+                return Response({'error': 'Unable to determine shift for the provided recorded_date_time.'}, status=status.HTTP_400_BAD_REQUEST)
+
             # Create a new record in the appropriate model (e.g., Khamgaon)
             record = model.objects.create(
                 machines_id=machines_id,
@@ -641,11 +726,12 @@ class DashboardAPIView(viewsets.ModelViewSet):
                 duration=duration,
                 plant_id=plant_id,
                 recorded_date_time=recorded_date_time,
-                type_of_stoppage=stoppage_type
+                type_of_stoppage=stoppage_type,
+                shift=shift
             )
 
             # Extract just the date from recorded_date_time for Dashboard entry
-            recorded_date = recorded_date_time.split('T')[0]
+            recorded_date = date_str
 
             # Update or create the record in the Dashboard table
             dashboard_entry, created = Dashboard.objects.get_or_create(
@@ -654,6 +740,7 @@ class DashboardAPIView(viewsets.ModelViewSet):
                 plant_id=plant_id,
                 recorded_date_time=recorded_date,
                 type_of_stoppage=stoppage_type,
+                shift=shift,
                 defaults={'total_duration': duration}
             )
 
@@ -676,6 +763,7 @@ class DashboardAPIView(viewsets.ModelViewSet):
         openapi.Parameter('product_id', openapi.IN_QUERY, description="Product ID", type=openapi.TYPE_INTEGER),
         openapi.Parameter('area', openapi.IN_QUERY, description="Area ID", type=openapi.TYPE_INTEGER),
         openapi.Parameter('type_of_stoppage', openapi.IN_QUERY, description="Stoppage ID", type=openapi.TYPE_INTEGER),
+        openapi.Parameter('shift', openapi.IN_QUERY, description="shift1,shift2,shift3", type=openapi.TYPE_STRING),
 
     ],
     operation_description="List area counts for a specific plant within the specified date range and filters",
@@ -696,6 +784,8 @@ class DashboardAPIView(viewsets.ModelViewSet):
         product_id = request.query_params.get('product_id')
         area_id = request.query_params.get('area')
         stoppage_type = request.query_params.get('type_of_stoppage')
+        shift = request.query_params.get('shift')  # Added shift filter
+
         if not plant_id:
             return Response({"message": "plant_id is required."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -713,12 +803,11 @@ class DashboardAPIView(viewsets.ModelViewSet):
             return Response({"message": "Invalid date format provided. Use YYYY-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check if any filters are applied
-        filters_applied = bool(machine_id or department_id or product_id or area_id or from_date or to_date or stoppage_type)
+        filters_applied = bool(machine_id or department_id or product_id or area_id or from_date or to_date or stoppage_type or shift)
 
         if not filters_applied:
             cache_key = f'{CACHE_KEY}'
             cached_data = cache.get(cache_key)
-            print('cached_data',cached_data)
             if cached_data:
                 return Response(cached_data, status=status.HTTP_200_OK)
 
@@ -731,9 +820,10 @@ class DashboardAPIView(viewsets.ModelViewSet):
             filter_criteria['product_id'] = product_id
         if area_id:
             filter_criteria['areas_id'] = area_id
-        print('area',area_id)
         if stoppage_type:
-            filter_criteria['type_of_stoppage__id'] = area_id
+            filter_criteria['type_of_stoppage__id'] = stoppage_type
+        if shift:
+            filter_criteria['shift'] = shift  # Added shift filter
 
         queryset = Dashboard.objects.filter(**filter_criteria)
         response_data = {}
@@ -772,10 +862,12 @@ class DashboardAPIView(viewsets.ModelViewSet):
 
         response_data['areas'] = list(areas_set)
 
-        # if not filters_applied:
-        #     cache.set(cache_key, response_data, timeout=CACHE_TIMEOUT)
+        # Cache the response data if no filters are applied
+        if not filters_applied:
+            cache.set(cache_key, response_data, timeout=CACHE_TIMEOUT)
 
         return Response(response_data, status=status.HTTP_200_OK)
+
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -1343,6 +1435,63 @@ class StoppageGraphAPIView(viewsets.ViewSet):
     
 
 class DownTimeAnalysisViewSet(viewsets.ViewSet):
+    @swagger_auto_schema(
+        operation_summary="List downtime analysis records",
+        operation_description="Retrieve a list of downtime analysis records with optional filters and pagination.",
+        manual_parameters=[
+            openapi.Parameter(
+                'from_date',
+                openapi.IN_QUERY,
+                description="Start date for filtering records (format: YYYY-MM-DD)",
+                type=openapi.TYPE_STRING,
+            ),
+            openapi.Parameter(
+                'to_date',
+                openapi.IN_QUERY,
+                description="End date for filtering records (format: YYYY-MM-DD)",
+                type=openapi.TYPE_STRING,
+            ),
+            openapi.Parameter(
+                'areas',
+                openapi.IN_QUERY,
+                description="Filter by area ID",
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                'gate',
+                openapi.IN_QUERY,
+                description="Filter by gate",
+                type=openapi.TYPE_STRING,
+            ),
+        ],
+        responses={
+            200: openapi.Response(
+                description="List of downtime analysis records",
+                examples={
+                    'application/json': [
+                        {
+                            "id": 1,
+                            "machine_stop_time": "2024-09-01T10:00:00",
+                            "machine_stop_duration": "120",
+                            "gate": "Gate 1",
+                            "gate_open_duration": "15",
+                            "area_duration": "45",
+                            "area_name": "Area A"
+                        },
+                        # More example entries
+                    ]
+                }
+            ),
+            400: openapi.Response(
+                description="Bad request",
+                examples={
+                    'application/json': {
+                        "detail": "Bad request"
+                    }
+                }
+            )
+        }
+    )
     def list(self, request):
         queryset = DownTimeAnalysis.objects.all()
         
@@ -1385,9 +1534,257 @@ class DownTimeAnalysisViewSet(viewsets.ViewSet):
         
         return paginator.get_paginated_response(results)
 
+    @swagger_auto_schema(
+        operation_summary="Create a new downtime analysis record",
+        operation_description="Create a new downtime analysis record with the provided data.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'machine_stop_time': openapi.Schema(type=openapi.TYPE_STRING, description='Time when the machine stopped'),
+                'machine_stop_duration': openapi.Schema(type=openapi.TYPE_STRING, description='Duration the machine was stopped'),
+                'gate': openapi.Schema(type=openapi.TYPE_STRING, description='Gate identifier'),
+                'gate_open_duration': openapi.Schema(type=openapi.TYPE_STRING, description='Duration the gate was open'),
+                'areas': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID of the area where the downtime occurred'),
+                'area_duration': openapi.Schema(type=openapi.TYPE_STRING, description='Duration of the downtime in the area')
+            },
+            required=['gate_open_duration'],  # Required fields
+        ),
+        responses={
+            201: openapi.Response(
+                description="Record created successfully",
+                examples={
+                    'application/json': {
+                        "message": "Record Created Successfully."
+                    }
+                }
+            ),
+            400: openapi.Response(
+                description="Bad request",
+                examples={
+                    'application/json': {
+                        "detail": "Invalid data provided."
+                    }
+                }
+            )
+        }
+    )
     def create(self, request):
         serializer = DownTimeAnalysisSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response({"message":"Record Created Successfully."}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+from django.db import connection
+from rest_framework import viewsets, status
+from rest_framework.response import Response
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+from datetime import datetime, time as dt_time
+
+class DownTimeAnalysisAggregatedViewSet(viewsets.ViewSet):
+    @swagger_auto_schema(
+        operation_summary="Get aggregated downtime analysis data",
+        operation_description="Retrieve aggregated downtime analysis data with optional filters.",
+        manual_parameters=[
+            openapi.Parameter(
+                'from_date',
+                openapi.IN_QUERY,
+                description="Start date for filtering results (format: YYYY-MM-DD)",
+                type=openapi.TYPE_STRING,
+                required=False
+            ),
+            openapi.Parameter(
+                'to_date',
+                openapi.IN_QUERY,
+                description="End date for filtering results (format: YYYY-MM-DD)",
+                type=openapi.TYPE_STRING,
+                required=False
+            ),
+            openapi.Parameter(
+                'areas',
+                openapi.IN_QUERY,
+                description="Filter by area ID",
+                type=openapi.TYPE_INTEGER,
+                required=False
+            ),
+            openapi.Parameter(
+                'gate',
+                openapi.IN_QUERY,
+                description="Filter by gate",
+                type=openapi.TYPE_STRING,
+                required=False
+            ),
+            openapi.Parameter(
+                'shift',
+                openapi.IN_QUERY,
+                description="Filter by shift (shift1, shift2, shift3)",
+                type=openapi.TYPE_STRING,
+                required=False
+            ),
+        ],
+        responses={
+            200: openapi.Response(
+                description="Aggregated downtime analysis data",
+                examples={
+                    'application/json': {
+                        "results": [
+                            {
+                                "date": "2024-08-27",
+                                "total_max_machine_stop_duration": 120.0,
+                                "total_max_gate_open_duration": 80.0,
+                                "total_max_area_duration": 50.0
+                            },
+                            {
+                                "date": "2024-08-28",
+                                "total_max_machine_stop_duration": 90.0,
+                                "total_max_gate_open_duration": 60.0,
+                                "total_max_area_duration": 40.0
+                            }
+                            # More example entries
+                        ]
+                    }
+                }
+            ),
+            400: openapi.Response(
+                description="Bad request",
+                examples={
+                    'application/json': {
+                        "message": "Invalid date format provided. Use YYYY-MM-DD."
+                    }
+                }
+            )
+        }
+    )
+    def list(self, request):
+        from_date_str = request.query_params.get('from_date')
+        to_date_str = request.query_params.get('to_date')
+        area_id = request.query_params.get('areas')
+        gate = request.query_params.get('gate')
+        shift = request.query_params.get('shift')
+
+        # Validate dates
+        try:
+            from_date = datetime.strptime(from_date_str, '%Y-%m-%d').date() if from_date_str else None
+            to_date = datetime.strptime(to_date_str, '%Y-%m-%d').date() if to_date_str else None
+            if from_date and to_date and from_date > to_date:
+                return Response({"message": "from_date cannot be after to_date."}, status=status.HTTP_400_BAD_REQUEST)
+        except ValueError:
+            return Response({"message": "Invalid date format provided. Use YYYY-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Define shift times
+        shifts = {
+            'shift1': (dt_time(23, 0), dt_time(7, 0)),
+            'shift2': (dt_time(7, 0), dt_time(15, 0)),
+            'shift3': (dt_time(15, 0), dt_time(23, 0)),
+        }
+
+        # Base query
+        query = """
+        WITH MaxDurations AS (
+            SELECT
+                DATE(SUBSTRING(machine_stop_time, 1, 10)) AS date,
+                MAX(CAST(SUBSTRING(machine_stop_duration, 1, LENGTH(machine_stop_duration)) AS UNSIGNED)) AS max_machine_stop_duration,
+                MAX(CAST(SUBSTRING(gate_open_duration, 1, LENGTH(gate_open_duration)) AS UNSIGNED)) AS max_gate_open_duration,
+                MAX(CAST(SUBSTRING(area_duration, 1, LENGTH(area_duration)) AS UNSIGNED)) AS max_area_duration
+            FROM
+                DownTimeAnalysis
+            WHERE
+                TRUE
+        """
+
+        # Add date filters
+        if from_date:
+            query += " AND DATE(SUBSTRING(machine_stop_time, 1, 10)) >= %s"
+        if to_date:
+            query += " AND DATE(SUBSTRING(machine_stop_time, 1, 10)) <= %s"
+
+        # Add area filter
+        if area_id:
+            query += " AND areas_id = %s"
+
+        # Add gate filter
+        if gate:
+            query += " AND gate = %s"
+
+        # Add shift filter
+        if shift and shift in shifts:
+            shift_start, shift_end = shifts[shift]
+
+            # Shift spans midnight, so handle in two parts
+            if shift_start > shift_end:
+                query += """
+                AND (
+                    (TIME(SUBSTRING(machine_stop_time, 12, 8)) BETWEEN %s AND '23:59:59')
+                    OR
+                    (TIME(SUBSTRING(machine_stop_time, 12, 8)) BETWEEN '00:00:00' AND %s)
+                )
+                """
+            else:
+                query += " AND TIME(SUBSTRING(machine_stop_time, 12, 8)) BETWEEN %s AND %s"
+
+        query += """
+            GROUP BY
+                DATE(SUBSTRING(machine_stop_time, 1, 10)), SUBSTRING(machine_stop_time, 1, 19)
+        )
+        SELECT
+            date,
+            SUM(max_machine_stop_duration) AS total_max_machine_stop_duration,
+            SUM(max_gate_open_duration) AS total_max_gate_open_duration,
+            SUM(max_area_duration) AS total_max_area_duration
+        FROM
+            MaxDurations
+        GROUP BY
+            date;
+        """
+
+        # Prepare parameters for query
+        params = []
+        if from_date:
+            params.append(from_date)
+        if to_date:
+            params.append(to_date)
+        if area_id:
+            params.append(area_id)
+        if gate:
+            params.append(gate)
+        if shift and shift in shifts:
+            shift_start, shift_end = shifts[shift]
+            params.append(shift_start.strftime('%H:%M:%S'))
+            if shift_start > shift_end:  # For shifts spanning midnight
+                params.append(shift_end.strftime('%H:%M:%S'))
+            else:
+                params.append(shift_end.strftime('%H:%M:%S'))
+
+        # Print the SQL query with parameters for debugging
+        from django.db.backends.utils import truncate_name
+        import re
+
+        def substitute_params(query, params):
+            """ Substitute parameters into the query for debugging. """
+            param_iter = iter(params)
+            def replace_placeholder(match):
+                return str(next(param_iter))
+            return re.sub(r'%s', replace_placeholder, query)
+
+        print("SQL Query with values:", substitute_params(query, params))
+
+        # Execute query
+        with connection.cursor() as cursor:
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+
+        # Format results
+        results = [
+            {
+                "date": row[0].strftime('%Y-%m-%d'),
+                "total_max_machine_stop_duration": row[1],
+                "total_max_gate_open_duration": row[2],
+                "total_max_area_duration": row[3]
+            }
+            for row in rows
+        ]
+
+        return Response({"results": results}, status=status.HTTP_200_OK)
+        

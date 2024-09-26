@@ -20,6 +20,7 @@ router.register('system-status',SystemStatusAPIView,basename="System Status")
 router.register('stoppage',StoppageAPIView,basename='Stoppage')
 router.register('stoppage-graph',StoppageGraphAPIView,basename='StoppageGraph')
 router.register('downtime-analysis', DownTimeAnalysisViewSet, basename='downtime-analysis')
+router.register('downtime-graph',DownTimeAnalysisAggregatedViewSet,basename='downtimegraph')
 # router.register('defct-vs-machine', DefectVSProduction, basename='plant-data')
 
 urlpatterns= [

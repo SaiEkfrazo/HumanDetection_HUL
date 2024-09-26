@@ -74,6 +74,7 @@ class Khamgaon(models.Model): ### For human detection ###
     recorded_date_time = models.CharField(max_length=200,blank=True,null=True)
     duration = models.FloatField(null=True,blank=True)
     type_of_stoppage = models.ForeignKey(StoppageType,on_delete=models.CASCADE,null=True,blank=True)
+    shift = models.CharField(max_length=100,blank=True,null=True)
 
 class LiquidPlant(models.Model): # liquid means comfort sachet plant
     class Meta:
@@ -177,6 +178,8 @@ class Dashboard(models.Model):
     recorded_date_time = models.CharField(max_length=255)  # Store date and time as string
     total_duration = models.FloatField(default=0)  # Count of occurrences
     type_of_stoppage = models.ForeignKey(StoppageType,on_delete=models.CASCADE,null=True,blank=True)
+    shift = models.CharField(max_length=100,blank=True,null=True)
+    
     class Meta:
         db_table = 'Dashboard'
         indexes = [
